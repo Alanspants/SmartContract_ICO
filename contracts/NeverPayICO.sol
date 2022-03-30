@@ -4,7 +4,7 @@ import "./ERC20NeverPayToken.sol";
 contract NeverPayICO {
 
     // Token => 10000 shares
-    ERC20NeverPayToken token;
+    ERC20NeverPayToken public token;
 
     // address of NeverPay (beneficiary of ICO).
     address payable public beneficiary;
@@ -48,10 +48,6 @@ contract NeverPayICO {
     // if their potentially successful bid is failed.
     bool ICOEndFlag;
 
-    // Flag to check whether beneficiary has already collect his ETH
-    // and approve the shares collection.
-    bool BeneficiaryApproveFlag;
-
     // Hashset to record the bid order;
     mapping(bytes32 => uint) bidOrder;
 
@@ -63,7 +59,6 @@ contract NeverPayICO {
     modifier onlyBeforeICOEnd() {require(!ICOEndFlag); _; }
     modifier onlyAfterICOEnd() {require(ICOEndFlag); _; }
     modifier onlyBeneficiary() {require(msg.sender == beneficiary); _;}
-    modifier alreadyApprove() {require(BeneficiaryApproveFlag); _;}
 
     // Initial DDL of round1 and round2,
     // initial addr of beneficiary.
@@ -73,8 +68,8 @@ contract NeverPayICO {
         beneficiary = _beneficiary;
         ICOEndFlag = false;
         totalICOETH = 0;
-        BeneficiaryApproveFlag = false;
         token = new ERC20NeverPayToken(10000, "NeverPay Tokens", 0, "NPT");
+        // token = _token;
         order = 0;
     }
 
@@ -152,6 +147,7 @@ contract NeverPayICO {
         public
         onlyAfter(revealEnd)
         onlyBeforeICOEnd()
+        onlyBeneficiary()
     {
         ICOEndFlag = true;
         uint totalShare = 0;
@@ -198,36 +194,29 @@ contract NeverPayICO {
 
     // Beneficiary use this function to approve the token transaction (beneficiary => investors)
     // Beneficiary use this function to get ETH withdraw collected during ICO
-    function beneficiaryApproveAndWithdraw()
+    function beneficiaryGetPaid()
         public
         onlyAfterICOEnd()
         onlyBeneficiary()
     {
-        require(!BeneficiaryApproveFlag);
         uint amount = totalICOETH;
         if (amount > 0) {
             totalICOETH = 0;
             // Transfer ETH to beneficiary.
             beneficiary.transfer(ETHtoWei(amount));
         }
-        // Approved every transaction to investors.
-        for(uint i = 0; i < investors.length; i++) {
-            token.approve(investors[i], shares[investors[i]]);
-        }
-        BeneficiaryApproveFlag = true;
     }
 
     // Investor use this function to get their shares.
     function getShares() 
         public
         onlyAfterICOEnd()
-        alreadyApprove()
     {
         uint amount = shares[msg.sender];
         if (amount > 0) {
             shares[msg.sender] = 0;
             // Shares transfer.
-            token.transferFrom(beneficiary, msg.sender, amount);
+            token.transfer(msg.sender, amount);
         }
     }
 
@@ -334,18 +323,25 @@ contract NeverPayICO {
             o = validBids[index].bid_order;
         }
 
-    function getValidBidsLen()
+    function getNPTbalance(address a)
         view
         public
-        returns (uint len) {
-            len = validBids.length;
+        returns (uint balance) {
+            balance = token.balanceOf(a);
+        }
+    
+    function getTokenAllowance(address a1, address a2)
+        view
+        public
+        returns (uint allowance) {
+            allowance = token.allowance(a1, a2);
         }
 
-    function getRefund(address addr)
+    function getAddress()
         view
         public
-        returns (uint e) {
-            e = refunds[addr];
+        returns (address addr) {
+            addr = address(this);
         }
 
     function hashTest(uint _shares, uint _price, bytes32 _nonce)

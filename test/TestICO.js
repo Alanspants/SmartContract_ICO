@@ -59,7 +59,7 @@ contract("ICO test", async accounts => {
     var encoded;
 
     beforeEach(async () => {
-        NPT = await NeverPayToken.new(10000, "NeverPay Tokens", 0, "NPT", { from: accounts[0] });
+        // NPT = await NeverPayToken.new(10000, "NeverPay Tokens", 0, "NPT", { from: accounts[0] });
         ICO = await NeverPayICO.new(accounts[0], { from: accounts[0] });
     });
 
@@ -308,6 +308,7 @@ contract("ICO test", async accounts => {
     
     */
     
+    
     it("Whole process", async() => {
 
         // Account[1]
@@ -417,27 +418,27 @@ contract("ICO test", async accounts => {
 
         await ICO.ICOEnd({ from: accounts[0] });
 
-        /*
-        account:     share:      price:      paid:       valid:      refund(ETH):
-        acc1         2000        2           4000        partial     2000
-        acc2         1000        5           5000        yes
-        acc3         3000        7           21000       no
-        acc4         2000        3           6000        yes
-        acc5         1000        9           9000        yes
-        acc6         2000        5           10000       yes
-        acc7         2000        1           2000        no          2000
-        acc8         2000        1           1000        no          1000
-        acc9         500         5           500         no          500
-        sorted by price: acc5 > acc3 > acc2 > acc6 > acc9 > acc4 > acc1 > acc7 > acc8
-        available: acc5(1000) > acc3(3000) > acc2(1000) > acc6(2000) > acc4(2000) > acc1(1000)
-        successful bid:  acc5: 1000 * 9 = 9000
-                         acc3: 3000 * 7 = 21000
-                         acc2: 1000 * 5 = 5000
-                         acc6: 2000 * 5 = 10000
-                         acc4: 2000 * 3 = 6000
-                         acc1: 1000 * 2 = 2000
-        Total ETH collected = 53000
-        */
+        
+        // account:     share:      price:      paid:       valid:      refund(ETH):
+        // acc1         2000        2           4000        partial     2000
+        // acc2         1000        5           5000        yes
+        // acc3         3000        7           21000       no
+        // acc4         2000        3           6000        yes
+        // acc5         1000        9           9000        yes
+        // acc6         2000        5           10000       yes
+        // acc7         2000        1           2000        no          2000
+        // acc8         2000        1           1000        no          1000
+        // acc9         500         5           500         no          500
+        // sorted by price: acc5 > acc3 > acc2 > acc6 > acc9 > acc4 > acc1 > acc7 > acc8
+        // available: acc5(1000) > acc3(3000) > acc2(1000) > acc6(2000) > acc4(2000) > acc1(1000)
+        // successful bid:  acc5: 1000 * 9 = 9000
+        //                  acc3: 3000 * 7 = 21000
+        //                  acc2: 1000 * 5 = 5000
+        //                  acc6: 2000 * 5 = 10000
+        //                  acc4: 2000 * 3 = 6000
+        //                  acc1: 1000 * 2 = 2000
+        // Total ETH collected = 53000
+        
 
         // Check sorted
         const resultArray_0 = await ICO.getValidBidInfo.call(0);
@@ -525,19 +526,32 @@ contract("ICO test", async accounts => {
         const invest_1 = await ICO.investors.call(5);
         assert.equal(invest_1, accounts[1]);
 
-        // Check the transfer is valid.
+        // Check the ETH transfer is valid.
         const beneficiaryBalanceWei_before = await web3.eth.getBalance(accounts[0]);
         const beneficiaryBalanceETH_before = await ICO.weiToETH(beneficiaryBalanceWei_before);
-        await ICO.beneficiaryApproveAndWithdraw({ from: accounts[0] });
+        await ICO.beneficiaryGetPaid({ from: accounts[0] });
         const beneficiaryBalanceWei_after = await web3.eth.getBalance(accounts[0]);
         const beneficiaryBalanceETH_after = await ICO.weiToETH(beneficiaryBalanceWei_after);
         const beneficiaryGetFromICO = beneficiaryBalanceETH_after - beneficiaryBalanceETH_before;
 
         assert.equal(totalICOETH.words[0], beneficiaryGetFromICO);
 
+
+        // Check acc5 token transfer (expected to get 1000 NPTs)
+        await ICO.getShares({ from: accounts[5] });
+        var acc5NPTBalance =  await ICO.getNPTbalance.call(accounts[5]);
+        assert.equal(acc5NPTBalance.toNumber(), 1000);
+        
+
+        // const allowanceChecked = await NPTaddress.allowance.call(accounts[0], accounts[5]);
+        // console.log(allowanceChecked);
+        // assert.equal(allowanceChecked, 1000);
+        // await ICO.getShares({ from: accounts[5] })
+        // assert.equal(acc5NPTBalance.toNumber(), 1000);
+
         await revertToSnapShot(snapshotID);
     })
-
+    
 
 
     /*
