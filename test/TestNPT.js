@@ -12,7 +12,7 @@ async function assertRevert (promise) {
   }
 
 contract("NPT test", async accounts => {
-    it("first account and totalSuplly has 10000 NPT", async () => {
+    it("Initial test", async () => {
         // Init with 10000 NPTs
         const NPT = await NeverPayToken.new(10000, "NeverPay Tokens", 0, "NPT");
 
@@ -25,7 +25,7 @@ contract("NPT test", async accounts => {
         assert.equal(totalSupply, 10000);
     })
 
-    it("approved transaction", async () => {
+    it("Approved transaction", async () => {
         // Init with 10000 NPTs
         const NPT = await NeverPayToken.new(10000, "NeverPay Tokens", 0, "NPT");
 
@@ -47,4 +47,19 @@ contract("NPT test", async accounts => {
         const NPT = await NeverPayToken.new(10000, "NeverPay Tokens", 0, "NPT");
         await assertRevert(NPT.transferFrom.call(accounts[0], accounts[1], 500, { from: accounts[1] }));
     })
+
+    it("Transfer successfully", async() => {
+        const NPT = await NeverPayToken.new(1000, "NeverPay Tokens", 0, "NPT");
+        await NPT.transfer(accounts[1], 500, { from: accounts[0] });
+        const acc0Balance = await NPT.balanceOf.call(accounts[0]);
+        const acc1Balance = await NPT.balanceOf.call(accounts[1]);
+        assert.equal(acc0Balance, 500);
+        assert.equal(acc1Balance, 500);
+    })
+
+    it("Transfer failed", async() => {
+        const NPT = await NeverPayToken.new(1000, "NeverPay Tokens", 0, "NPT");
+        await assertRevert(NPT.transfer(accounts[1], 2000, { from: accounts[0] }));
+    })
+
 });
