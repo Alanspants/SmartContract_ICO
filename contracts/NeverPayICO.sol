@@ -4,7 +4,7 @@ import "./ERC20NeverPayToken.sol";
 contract NeverPayICO {
 
     // Token => 10000 shares
-    ERC20NeverPayToken public token;
+    ERC20NeverPayToken token;
 
     // address of NeverPay (beneficiary of ICO).
     address payable public beneficiary;
@@ -15,14 +15,11 @@ contract NeverPayICO {
     // DDL of round 2.
     uint public revealEnd;
 
-    // The hash value of blind bid in first round => H(shares, price, nonce).
-    bytes32 bindedBid;
-
     // Hashset to record the first round bids => (addr, blindedBid[]).
-    mapping(address => mapping(bytes32 => bool)) public bids;
+    mapping(address => mapping(bytes32 => bool)) bids;
 
     // Hashset to record the refund to be paid => (addr, ETH).
-    mapping(address => uint) public refunds;
+    mapping(address => uint) refunds;
 
     // Struct type to store every valid bid in round 2.
     struct validBid {
@@ -33,11 +30,7 @@ contract NeverPayICO {
     }
     
     // Array to store all valid bids.
-    validBid[] public validBids;
-
-    // Flag to check whether the whole ICO part is end and bidder can start to withdraw the money
-    // if their potentially successful bid is failed.
-    bool ICOEndFlag;
+    validBid[] validBids;
 
     // Hashset to record the bid order;
     mapping(bytes32 => uint) bidOrder;
@@ -50,8 +43,6 @@ contract NeverPayICO {
 
     modifier onlyBefore(uint _time) { require(block.timestamp < _time); _; }
     modifier onlyAfter(uint _time) { require(block.timestamp > _time); _; }
-    modifier onlyBeforeICOEnd() {require(!ICOEndFlag); _; }
-    modifier onlyAfterICOEnd() {require(ICOEndFlag); _; }
     modifier onlyBeneficiary() {require(msg.sender == beneficiary); _;}
 
     // Initial DDL of round1 and round2,
@@ -60,7 +51,6 @@ contract NeverPayICO {
         bidEnd = 1650412800;
         revealEnd = 1651017600;
         beneficiary = _beneficiary;
-        ICOEndFlag = false;
         token = new ERC20NeverPayToken(10000, "NeverPay Tokens", 0, "NPT");
         // token = _token;
         order = 0;
@@ -85,12 +75,12 @@ contract NeverPayICO {
     [Round1] Withdraw a bid
     _bindedBid: hash value of bid message send by bidder => H(shares, price, nonce) 
     */
-    function cancelBid(bytes32 _bindedBid)
+    function withdrawBid(bytes32 _blindedBid)
         public
         onlyBefore(bidEnd)
     {
         // Make the corresponding bid unavailable to reveal.
-        bids[msg.sender][_bindedBid] = false;
+        bids[msg.sender][_blindedBid] = false;
     }
     
     /*
@@ -138,13 +128,22 @@ contract NeverPayICO {
         }
     }
 
+    /*
+    [after Round2] Issue bid
+    If investor has successful bid => get share
+    If investor has failed bid => get refund
+    Beneficiary => get ETH paid
+    */
     function issue()
         public
         onlyAfter(revealEnd)
     {   
+        // Only account which has bid before can call issue
         require(issued[msg.sender]);
+        // Mark this account has already issued, in case of double calling
         issued[msg.sender] = false;
 
+        // Sort every valid bid
         insertionSort();
 
         uint totalShare = 0;
@@ -152,8 +151,10 @@ contract NeverPayICO {
         uint refund = 0;
         uint share = 0;
 
+        // If called by beneficiary
         if (msg.sender == beneficiary) {
             uint totalETH = 0;
+            // Get all ETH collected in ICO (Only successful bid)
             for (uint i = 0; i < validBids.length; i++){
                 if (validBids[i].shares + totalShare > 10000) {
                     overflowShare = validBids[i].shares + totalShare - 10000;
@@ -164,15 +165,20 @@ contract NeverPayICO {
                     totalETH += validBids[i].shares * validBids[i].price;
                 }
             }
+            // Get paid
             beneficiary.transfer(ETHtoWei(totalETH));
         } else {
+            // If called by investor
             for(uint i = 0; i < validBids.length; i++) {
                 if (validBids[i].addr == msg.sender) {
+                // Find his/her bid, calculate the share and refund
                     if (totalShare >= 10000) {
+                        // share overflow, get full refund
                         refund += validBids[i].shares * validBids[i].price;
                     } else {
                         totalShare += validBids[i].shares;
                         if (totalShare > 10000) {
+                            // share partial overflow, get partial refund
                             overflowShare = totalShare - 10000;
                             share += validBids[i].shares - overflowShare;
                             refund += overflowShare * validBids[i].price;
@@ -182,41 +188,28 @@ contract NeverPayICO {
                         }
                     }
                 } else {
+                    // calculate the current share amount
                     totalShare += validBids[i].shares;
                     if (totalShare >= 10000) totalShare = 10000;
                 }
             }
 
+            // get token transfer
             if (share > 0) token.transfer(msg.sender, share);
 
+            // get refund transfer
             uint refundAmount = refund + refunds[msg.sender];
             if (refundAmount > 0) payable(msg.sender).transfer(ETHtoWei(refundAmount));
         } 
     }
 
-    function quickSort(int left, int right)
-        public
-    {
-        int i = left;
-        int j = right;
-        if (i == j) return;
-        uint pivot = validBids[uint(left + (right - left) / 2)].price;
-        while (i <= j) {
-            while (validBids[uint(i)].price > pivot) i++;
-            while (pivot < validBids[uint(j)].price) j--;
-            if (i <= j) {
-                validBid memory temp = validBids[uint(i)];
-                validBids[uint(i)] = validBids[uint(j)];
-                validBids[uint(j)] = temp;
-                // (validBids[uint(i)], validBids[uint(j)]) = (validBids[uint(j)], validBids[uint(i)]);
-                i++;
-                j--;
-            }
-        }
-        if (left < j) quickSort(left, j); 
-        if (i < right) quickSort(i, right);
-    }
-
+    // 3,5,2,1,6,5
+    // preIndex    current     validBids
+    // 0           1=>5        3,5,2,1,6,5 => 3,3,2,1,6,5 => 5,3,2,1,6,5
+    // 1           2=>2        5,3,2,1,6,5
+    // 2           3=>1        5,3,2,1,6,5
+    // 3           4=>6        5,3,2,1,6,5 => 5,3,2,1,1,5 => 5,3,2,2,1,5 => 5,3,3,2,1,5 => 5,5,3,2,1,5 => 6,5,3,2,1,5
+    // 4           5=>5        6,5,3,2,1,5 => 6,5,3,2,1,1 => 6,5,3,2,2,1 => 6,5,3,3,2,1 => 
 
     function insertionSort()
         public
@@ -240,17 +233,7 @@ contract NeverPayICO {
         }
     }
 
-    // 3,5,2,1,6,5
-
-    // preIndex    current     validBids
-    // 0           1=>5        3,5,2,1,6,5
-    //                         3,3,2,1,6,5
-    //                         5,3,2,1,6,5
-    // 1           2=>2        5,3,2,1,6,5
-    // 2           3=>1        5,3,2,1,6,5
-    // 3           4=>6        5,3,2,1,6,5 => 5,3,2,1,1,5 => 5,3,2,2,1,5 => 5,3,3,2,1,5 => 5,5,3,2,1,5 => 6,5,3,2,1,5
-    // 4           5=>5        6,5,3,2,1,5 => 6,5,3,2,1,1 => 6,5,3,2,2,1 => 6,5,3,3,2,1 => 
-
+    // Helper func: wei to ETH
     function weiToETH(uint w)
         pure
         public
@@ -258,6 +241,7 @@ contract NeverPayICO {
             e = w / 1000000000000000000;
         }
     
+    // Helper func: ETH to wei
     function ETHtoWei(uint e)
         pure
         public
@@ -265,6 +249,15 @@ contract NeverPayICO {
             w = e * 1000000000000000000;
         }
 
+    // Helper func: get Token's contract address
+    function getTokenAddress()
+        view
+        public
+        returns (ERC20NeverPayToken addr) {
+            addr = token;
+        }
+
+    // Helper func: return valid bid's information
     function getValidBidInfo(uint index)
         view
         public
@@ -275,11 +268,11 @@ contract NeverPayICO {
             o = validBids[index].bid_order;
         }
 
-    function getNPTbalance(address a)
+    // Helper func: check bid status
+    function getBidStatus(address addr, bytes32 h)
         view
         public
-        returns (uint balance) {
-            balance = token.balanceOf(a);
+        returns (bool status) {
+            status = bids[addr][h];
         }
-
 }
