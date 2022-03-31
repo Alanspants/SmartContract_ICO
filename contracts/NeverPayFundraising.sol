@@ -1,12 +1,12 @@
 pragma solidity >= 0.8.0;
 import "./ERC20NeverPayToken.sol";
 
-contract NeverPayICO {
+contract NeverPayFundraising {
 
     // Token => 10000 shares
     ERC20NeverPayToken token;
 
-    // address of NeverPay (beneficiary of ICO).
+    // address of NeverPay (beneficiary of fundrasing).
     address payable public beneficiary;
 
     // DDL of round 1.
@@ -154,7 +154,7 @@ contract NeverPayICO {
         // If called by beneficiary
         if (msg.sender == beneficiary) {
             uint totalETH = 0;
-            // Get all ETH collected in ICO (Only successful bid)
+            // Get all ETH collected in Fundraising (Only successful bid)
             for (uint i = 0; i < validBids.length; i++){
                 if (validBids[i].shares + totalShare > 10000) {
                     overflowShare = validBids[i].shares + totalShare - 10000;

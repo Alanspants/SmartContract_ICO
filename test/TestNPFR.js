@@ -1,5 +1,5 @@
 const NeverPayToken = artifacts.require('ERC20NeverPayToken');
-const NeverPayICO = artifacts.require('NeverPayICO');
+const NeverPayFR = artifacts.require('NeverPayFundraising');
 
 async function assertRevert (promise) {
     try {
@@ -62,10 +62,10 @@ issueCheck = async (acc, refund, share) => {
     var ETHBalanceBefore_wei, ETHBalanceAfter_wei, ETHBalanceBefore_eth, ETHBalanceAfter_eth, ETHDiff, NPTBalance;
 
     ETHBalanceBefore_wei = await web3.eth.getBalance(acc);
-    ETHBalanceBefore_eth = await ICO.weiToETH(ETHBalanceBefore_wei);
-    await ICO.issue({ from: acc });
+    ETHBalanceBefore_eth = await NPFR.weiToETH(ETHBalanceBefore_wei);
+    await NPFR.issue({ from: acc });
     ETHBalanceAfter_wei = await web3.eth.getBalance(acc);
-    ETHBalanceAfter_eth = await ICO.weiToETH(ETHBalanceAfter_wei);
+    ETHBalanceAfter_eth = await NPFR.weiToETH(ETHBalanceAfter_wei);
     ETHDiff = ETHBalanceAfter_eth - ETHBalanceBefore_eth;
     assert.equal(ETHDiff, refund);
     
@@ -73,27 +73,27 @@ issueCheck = async (acc, refund, share) => {
     assert.equal(NPTBalance.words[0], share);
 }
 
-contract("ICO test", async accounts => {
+contract("Fundraising test", async accounts => {
 
     var encoded;
 
     beforeEach(async () => {
-        ICO = await NeverPayICO.new(accounts[0], { from: accounts[0] });
-        NPTaddr = await ICO.getTokenAddress.call();
+        NPFR = await NeverPayFR.new(accounts[0], { from: accounts[0] });
+        NPTaddr = await NPFR.getTokenAddress.call();
         NPT = await NeverPayToken.at(NPTaddr);
     });
 
     it("Initial Setup Check", async () => {
         // Beneficiary address check
-        const beneficiary = await ICO.beneficiary.call();
-        assert.equal(beneficiary, accounts[0], "account[0] is beneficiary of ICO");
+        const beneficiary = await NPFR.beneficiary.call();
+        assert.equal(beneficiary, accounts[0], "account[0] is beneficiary of fundraising");
 
         // Total token supply check
         const totalToken = await NPT.totalSupply.call();
         assert.equal(totalToken, 10000);
 
         // Contract hold 10000 tokens
-        const contractBalance = await NPT.balanceOf.call(ICO.address);
+        const contractBalance = await NPT.balanceOf.call(NPFR.address);
         assert.equal(contractBalance, 10000);
     });
 
@@ -102,35 +102,35 @@ contract("ICO test", async accounts => {
         // Account1 bid successful
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc1, { from: accounts[1] });
+        await NPFR.bid(bidAcc1, { from: accounts[1] });
 
         // Account2 bid successful
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc2, { from: accounts[2] });
+        await NPFR.bid(bidAcc2, { from: accounts[2] });
 
         // Account1 bid check => success
-        var bidsAcc1Check = await ICO.getBidStatus.call(accounts[1], bidAcc1);
+        var bidsAcc1Check = await NPFR.getBidStatus.call(accounts[1], bidAcc1);
         assert.equal(bidsAcc1Check, true);
 
         // Account2 bid check => success
-        var bidsAcc2Check = await ICO.getBidStatus.call(accounts[2], bidAcc2);
+        var bidsAcc2Check = await NPFR.getBidStatus.call(accounts[2], bidAcc2);
         assert.equal(bidsAcc2Check, true);
 
         // Check bids hashmap with wrong index
-        const bidsFalseCheck = await ICO.getBidStatus.call(accounts[1], bidAcc2);
+        const bidsFalseCheck = await NPFR.getBidStatus.call(accounts[1], bidAcc2);
         assert.equal(bidsFalseCheck, false);
 
         // Account1 bid withdraw
         // Account1 bid check => failed
-        await ICO.withdrawBid(bidAcc1, { from: accounts[1] });
-        bidsAcc1Check = await ICO.getBidStatus.call(accounts[1], bidAcc1);
+        await NPFR.withdrawBid(bidAcc1, { from: accounts[1] });
+        bidsAcc1Check = await NPFR.getBidStatus.call(accounts[1], bidAcc1);
         assert.equal(bidsAcc1Check, false);
 
         // Account2 bid withdraw
         // Account2 bid check => failed
-        await ICO.withdrawBid(bidAcc2, { from: accounts[2] });
-        bidsAcc2Check = await ICO.getBidStatus.call(accounts[2], bidAcc1);
+        await NPFR.withdrawBid(bidAcc2, { from: accounts[2] });
+        bidsAcc2Check = await NPFR.getBidStatus.call(accounts[2], bidAcc1);
         assert.equal(bidsAcc2Check, false);
 
     }) 
@@ -143,7 +143,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc1"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc1, { from: accounts[1] });
+        await NPFR.bid(bidAcc1, { from: accounts[1] });
 
         // Account[2]
         // share: 1000
@@ -151,7 +151,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc2"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc2, { from: accounts[2] });
+        await NPFR.bid(bidAcc2, { from: accounts[2] });
 
         // Account[3]
         // share: 500
@@ -159,27 +159,27 @@ contract("ICO test", async accounts => {
         // nonce: "acc3"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["500", "2", web3.utils.fromAscii("acc3")]);
         const bidAcc3 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc3, { from: accounts[3] });
+        await NPFR.bid(bidAcc3, { from: accounts[3] });
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
         await advanceTime(86400 * 25);
 
         // success reveal
-        await ICO.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: ICO.address, value: web3.utils.toWei("4000", "ether") });
-        const resultArray_0 = await ICO.getValidBidInfo.call(0);
+        await NPFR.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
+        const resultArray_0 = await NPFR.getValidBidInfo.call(0);
         assert.equal(resultArray_0[1].words[0], "2000")
         assert.equal(resultArray_0[2].words[0], "2")
 
         // failed reveal
         // mismatch nonce
-        await ICO.reveal.sendTransaction(1000, 5, web3.utils.fromAscii("abcdefg"), { from: accounts[2], to: ICO.address, value: web3.utils.toWei("5000", "ether") });
-        await assertRevert(ICO.getValidBidInfo.call(1));
+        await NPFR.reveal.sendTransaction(1000, 5, web3.utils.fromAscii("abcdefg"), { from: accounts[2], to: NPFR.address, value: web3.utils.toWei("5000", "ether") });
+        await assertRevert(NPFR.getValidBidInfo.call(1));
 
         // failed reveal
         // not enough ETH paid
-        await ICO.reveal.sendTransaction(500, 2, web3.utils.fromAscii("acc3"), { from: accounts[3], to: ICO.address, value: web3.utils.toWei("200", "ether") });
-        await assertRevert(ICO.getValidBidInfo.call(1));
+        await NPFR.reveal.sendTransaction(500, 2, web3.utils.fromAscii("acc3"), { from: accounts[3], to: NPFR.address, value: web3.utils.toWei("200", "ether") });
+        await assertRevert(NPFR.getValidBidInfo.call(1));
 
         await revertToSnapShot(snapshotID);
     })
@@ -193,7 +193,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc1"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc1, { from: accounts[1] });
+        await NPFR.bid(bidAcc1, { from: accounts[1] });
 
         // Account[2]
         // share: 1000
@@ -201,7 +201,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc2"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc2, { from: accounts[2] });
+        await NPFR.bid(bidAcc2, { from: accounts[2] });
 
         // Account[3]
         // share: 3000
@@ -209,7 +209,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc3"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["3000", "7", web3.utils.fromAscii("acc3")]);
         const bidAcc3 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc3, { from: accounts[3] });
+        await NPFR.bid(bidAcc3, { from: accounts[3] });
 
         // Account[4]
         // share: 2000
@@ -217,7 +217,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc4"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "3", web3.utils.fromAscii("acc4")]);
         const bidAcc4 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc4, { from: accounts[4] });
+        await NPFR.bid(bidAcc4, { from: accounts[4] });
 
         // Account[5]
         // share: 1000
@@ -225,7 +225,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc5"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "9", web3.utils.fromAscii("acc5")]);
         const bidAcc5 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc5, { from: accounts[5] });
+        await NPFR.bid(bidAcc5, { from: accounts[5] });
 
         // Account[1]
         // share: 2000
@@ -233,7 +233,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc1"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "5", web3.utils.fromAscii("acc1")]);
         const bidAcc1_again = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc1_again, { from: accounts[1] });
+        await NPFR.bid(bidAcc1_again, { from: accounts[1] });
 
         // Account[6]
         // share: 2000
@@ -241,7 +241,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc6"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "1", web3.utils.fromAscii("acc6")]);
         const bidAcc6 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc6, { from: accounts[6] });
+        await NPFR.bid(bidAcc6, { from: accounts[6] });
 
         // Account[7]
         // share: 2000
@@ -249,7 +249,7 @@ contract("ICO test", async accounts => {
         // nonce: "acc7"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "1", web3.utils.fromAscii("acc7")]);
         const bidAcc7 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc7, { from: accounts[7] });
+        await NPFR.bid(bidAcc7, { from: accounts[7] });
 
         // Account[8]
         // share: 500
@@ -257,38 +257,38 @@ contract("ICO test", async accounts => {
         // nonce: "acc8"
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["500", "5", web3.utils.fromAscii("acc8")]);
         const bidAcc8 = web3.utils.soliditySha3(encoded);
-        await ICO.bid(bidAcc8, { from: accounts[8] });
+        await NPFR.bid(bidAcc8, { from: accounts[8] });
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
         await advanceTime(86400 * 25);
 
         // Partial success reveal (total share > 10000) => get partial refund in ICOEnd (2000 ETH)
-        await ICO.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: ICO.address, value: web3.utils.toWei("4000", "ether") });
+        await NPFR.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
 
         // Success reveal
-        await ICO.reveal.sendTransaction(1000, 5, web3.utils.fromAscii("acc2"), { from: accounts[2], to: ICO.address, value: web3.utils.toWei("5000", "ether") });
+        await NPFR.reveal.sendTransaction(1000, 5, web3.utils.fromAscii("acc2"), { from: accounts[2], to: NPFR.address, value: web3.utils.toWei("5000", "ether") });
         
         // Success reveal
-        await ICO.reveal.sendTransaction(3000, 7, web3.utils.fromAscii("acc3"), { from: accounts[3], to: ICO.address, value: web3.utils.toWei("21000", "ether") });
+        await NPFR.reveal.sendTransaction(3000, 7, web3.utils.fromAscii("acc3"), { from: accounts[3], to: NPFR.address, value: web3.utils.toWei("21000", "ether") });
 
         // Success reveal
-        await ICO.reveal.sendTransaction(2000, 3, web3.utils.fromAscii("acc4"), { from: accounts[4], to: ICO.address, value: web3.utils.toWei("7000", "ether") });
+        await NPFR.reveal.sendTransaction(2000, 3, web3.utils.fromAscii("acc4"), { from: accounts[4], to: NPFR.address, value: web3.utils.toWei("7000", "ether") });
 
         // Success reveal
-        await ICO.reveal.sendTransaction(1000, 9, web3.utils.fromAscii("acc5"), { from: accounts[5], to: ICO.address, value: web3.utils.toWei("9000", "ether") });
+        await NPFR.reveal.sendTransaction(1000, 9, web3.utils.fromAscii("acc5"), { from: accounts[5], to: NPFR.address, value: web3.utils.toWei("9000", "ether") });
 
         // Success reveal
-        await ICO.reveal.sendTransaction(2000, 5, web3.utils.fromAscii("acc1"), { from: accounts[1], to: ICO.address, value: web3.utils.toWei("10000", "ether") });
+        await NPFR.reveal.sendTransaction(2000, 5, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("10000", "ether") });
 
         // Failed reveal (total share > 10000) => get refund in ICOEnd (2000 ETH)
-        await ICO.reveal.sendTransaction(2000, 1, web3.utils.fromAscii("acc6"), { from: accounts[6], to: ICO.address, value: web3.utils.toWei("2000", "ether") });
+        await NPFR.reveal.sendTransaction(2000, 1, web3.utils.fromAscii("acc6"), { from: accounts[6], to: NPFR.address, value: web3.utils.toWei("2000", "ether") });
 
         // Failed reveal (dismatched reveal) => get refund (1000 ETH)
-        await ICO.reveal.sendTransaction(1000, 1, web3.utils.fromAscii("acc7"), { from: accounts[7], to: ICO.address, value: web3.utils.toWei("1000", "ether") });
+        await NPFR.reveal.sendTransaction(1000, 1, web3.utils.fromAscii("acc7"), { from: accounts[7], to: NPFR.address, value: web3.utils.toWei("1000", "ether") });
         
         // Failed reveal (dismatched ETH paid) => get refund (2500 ETH)
-        await ICO.reveal.sendTransaction(500, 5, web3.utils.fromAscii("acc8"), { from: accounts[8], to: ICO.address, value: web3.utils.toWei("500", "ether") });
+        await NPFR.reveal.sendTransaction(500, 5, web3.utils.fromAscii("acc8"), { from: accounts[8], to: NPFR.address, value: web3.utils.toWei("500", "ether") });
 
         await advanceTime(86400 * 7);
 
@@ -360,7 +360,7 @@ contract("ICO test", async accounts => {
         await assertRevert(issueCheck(accounts[5], 0, 1000));
 
         // acc0 (beneficiary)
-        // Get 53000 ETH collected from ICO
+        // Get 53000 ETH collected from NPFR
         await issueCheck(accounts[0], 53000, 0);
 
         await revertToSnapShot(snapshotID);
