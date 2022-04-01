@@ -161,6 +161,14 @@ contract("Fundraising test", async accounts => {
         const bidAcc3 = web3.utils.soliditySha3(encoded);
         await NPFR.bid(bidAcc3, { from: accounts[3] });
 
+        // Account[4]
+        // share: 500
+        // price: 0.5
+        // nonce: "acc4"
+        encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["500", "0.5", web3.utils.fromAscii("acc4")]);
+        const bidAcc4 = web3.utils.soliditySha3(encoded);
+        await NPFR.bid(bidAcc4, { from: accounts[4] });
+
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
         await advanceTime(86400 * 24);
@@ -175,11 +183,23 @@ contract("Fundraising test", async accounts => {
         // mismatch nonce
         await NPFR.reveal.sendTransaction(1000, 5, web3.utils.fromAscii("abcdefg"), { from: accounts[2], to: NPFR.address, value: web3.utils.toWei("5000", "ether") });
         await assertRevert(NPFR.getValidBidInfo.call(1));
+        const refundAcc2 = await NPFR.getRefunds().call({ from: accounts[2] });
+        // assert.equal(refundAcc2.toNumber, 5000);
+        console.log(refundAcc2);
 
         // failed reveal
         // not enough ETH paid
         await NPFR.reveal.sendTransaction(500, 2, web3.utils.fromAscii("acc3"), { from: accounts[3], to: NPFR.address, value: web3.utils.toWei("200", "ether") });
         await assertRevert(NPFR.getValidBidInfo.call(1));
+        // const refundAcc3 = await NPFR.getRefunds().call({ from: accounts[3] });
+        // assert.equal(refundAcc3.toNumber, 200);
+
+        // failed reveal
+        // price < 1 Ether
+        await NPFR.reveal.sendTransaction(500, 0.5, web3.utils.fromAscii("acc4"), { from: accounts[4], to: NPFR.address, value: web3.utils.toWei("250", "ether") });
+        await assertRevert(NPFR.getValidBidInfo.call(1));
+        // const refundAcc4 = await NPFR.getRefunds().call({ from: accounts[4] });
+        // assert.equal(refundAcc4.toNumber, 250);
 
         await revertToSnapShot(snapshotID);
     })

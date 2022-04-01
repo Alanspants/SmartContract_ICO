@@ -52,7 +52,6 @@ contract NeverPayFundraising {
         revealEnd = 1651017600;
         beneficiary = _beneficiary;
         token = new ERC20NeverPayToken(10000, "NeverPay Tokens", 0, "NPT");
-        // token = _token;
         order = 0;
         issued[_beneficiary] = true;
     }
@@ -99,7 +98,8 @@ contract NeverPayFundraising {
         bytes32 hashedReveal = keccak256(abi.encodePacked(_shares, _price, _nonce));
         
         // Check whether these three parameters are matched with certain bid in round1
-        if (bids[msg.sender][hashedReveal] != true) {
+        // or price is smaller than 1 Ether.
+        if (bids[msg.sender][hashedReveal] != true || _price < 1) {
             // Bid not found || already been revealed
             // Refund the ETH
             refunds[msg.sender] += weiToETH(msg.value);
@@ -274,5 +274,13 @@ contract NeverPayFundraising {
         public
         returns (bool status) {
             status = bids[addr][h];
+        }
+    
+    // Helper func: get current refund amount
+    function getRefunds()
+        view
+        public
+        returns (uint refunds_amount) {
+            refunds_amount = refunds[msg.sender];
         }
 }
