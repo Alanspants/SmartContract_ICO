@@ -163,7 +163,7 @@ contract("Fundraising test", async accounts => {
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
-        await advanceTime(86400 * 25);
+        await advanceTime(86400 * 24);
 
         // success reveal
         await NPFR.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
@@ -194,6 +194,7 @@ contract("Fundraising test", async accounts => {
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
         await NPFR.bid(bidAcc1, { from: accounts[1] });
+        console.log(bidAcc1);
 
         // Account[2]
         // share: 1000
@@ -202,6 +203,7 @@ contract("Fundraising test", async accounts => {
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
         await NPFR.bid(bidAcc2, { from: accounts[2] });
+        console.log(bidAcc2);
 
         // Account[3]
         // share: 3000
@@ -290,7 +292,7 @@ contract("Fundraising test", async accounts => {
         // Failed reveal (dismatched ETH paid) => get refund (2500 ETH)
         await NPFR.reveal.sendTransaction(500, 5, web3.utils.fromAscii("acc8"), { from: accounts[8], to: NPFR.address, value: web3.utils.toWei("500", "ether") });
 
-        await advanceTime(86400 * 7);
+        await advanceTime(86400 * 5);
 
         // account:     share:      price:      paid:       valid:      reason:             refund(ETH):
         // acc1         2000        2           4000        partial     share overflow      2000
