@@ -18,7 +18,7 @@ contract NeverPayFundraising {
     // Hashset to record the first round bids => (addr, blindedBid[]).
     mapping(address => mapping(bytes32 => bool)) bids;
 
-    // Hashset to record the refund to be paid => (addr, ETH).
+    // Hashset to record the refund to be paid => (addr, wei).
     mapping(address => uint) refunds;
 
     // Struct type to store every valid bid in round 2.
@@ -99,15 +99,16 @@ contract NeverPayFundraising {
         
         // Check whether these three parameters are matched with certain bid in round1
         // or price is smaller than 1 Ether.
-        if (bids[msg.sender][hashedReveal] != true || _price < 1) {
+        if (bids[msg.sender][hashedReveal] != true || _price < 1000000000000000000) {
             // Bid not found || already been revealed
             // Refund the ETH
-            refunds[msg.sender] += weiToETH(msg.value);
+            // refunds[msg.sender] += weiToETH(msg.value);
+            refunds[msg.sender] += msg.value;
         } else {
             // calculate the full price of this bid.
             uint totalPrice = _shares * _price;
             // Check whether the payment is enough for this bid.
-            if (msg.value >= ETHtoWei(totalPrice)) {
+            if (msg.value >= totalPrice) {
                 // Enough
                 // Mark this bid as valid
                 validBids.push(validBid({
@@ -117,13 +118,15 @@ contract NeverPayFundraising {
                     bid_order: bidOrder[hashedReveal]
                 }));
                 // Refund the extra ETH
-                refunds[msg.sender] += (weiToETH(msg.value) - totalPrice);
+                // refunds[msg.sender] += (weiToETH(msg.value) - totalPrice);
+                refunds[msg.sender] += msg.value - totalPrice;
                 // Make this bid unabailable to reveal
                 bids[msg.sender][hashedReveal] = false;
             } else {
                 // Not enough
                 // Refund all ETH
-                refunds[msg.sender] += weiToETH(msg.value);
+                // refunds[msg.sender] += weiToETH(msg.value);
+                refunds[msg.sender] += msg.value;
             }
         }
     }
@@ -166,7 +169,8 @@ contract NeverPayFundraising {
                 }
             }
             // Get paid
-            beneficiary.transfer(ETHtoWei(totalETH));
+            // beneficiary.transfer(ETHtoWei(totalETH));
+            beneficiary.transfer(totalETH);
         } else {
             // If called by investor
             for(uint i = 0; i < validBids.length; i++) {
@@ -199,7 +203,7 @@ contract NeverPayFundraising {
 
             // get refund transfer
             uint refundAmount = refund + refunds[msg.sender];
-            if (refundAmount > 0) payable(msg.sender).transfer(ETHtoWei(refundAmount));
+            if (refundAmount > 0) payable(msg.sender).transfer(refundAmount);
         } 
     }
 
