@@ -3,12 +3,6 @@ var web3 = new Web3(Web3.givenProvider)
 
 const account = web3.eth.accounts.create()
 
-
-// var msg = 'hello worlds'
-// var hash = web3.utils.sha3(msg);
-// const encrypted = web3.eth.accounts.sign(hash, account.privateKey);
-// console.log(encrypted);
-
 const readline = require("readline");
 const rl = readline.createInterface({
     input: process.stdin,
