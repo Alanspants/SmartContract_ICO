@@ -1,10 +1,14 @@
 pragma solidity >= 0.8.0;
 import "./ERC20NeverPayToken.sol";
+import "./SophisticatedInvestorCertificateAuthorityRegistry.sol";
 
 contract NeverPayFundraising {
 
     // Token => 10000 shares
     ERC20NeverPayToken token;
+
+    // Token => 10000 shares
+    SophisticatedInvestorCertificateAuthorityRegistry CA;
 
     // address of NeverPay (beneficiary of fundrasing).
     address payable public beneficiary;
@@ -47,23 +51,40 @@ contract NeverPayFundraising {
 
     // Initial DDL of round1 and round2,
     // initial addr of beneficiary.
-    constructor(address payable _beneficiary) {
+    constructor(address payable _beneficiary, SophisticatedInvestorCertificateAuthorityRegistry _ca) {
         bidEnd = 1650412800;
         revealEnd = 1651017600;
         beneficiary = _beneficiary;
         token = new ERC20NeverPayToken(10000, "NeverPay Tokens", 0, "NPT");
+        CA = _ca;
         order = 0;
         issued[_beneficiary] = true;
     }
+
+    // /*
+    // [Round1] Make a bid
+    // _bindedBid: hash value of bid message send by bidder => H(shares, price, nonce)   
+    // */
+    // function bid(bytes32 _bindedBid)
+    //     public 
+    //     onlyBefore(bidEnd)
+    // {
+    //     bids[msg.sender][_bindedBid] = true;
+    //     bidOrder[_bindedBid] = order;
+    //     order += 1;
+    //     issued[msg.sender] = true;
+    // }
 
     /*
     [Round1] Make a bid
     _bindedBid: hash value of bid message send by bidder => H(shares, price, nonce)   
     */
-    function bid(bytes32 _bindedBid)
+    function bid(bytes32 _bindedBid, bytes memory sign)
         public 
         onlyBefore(bidEnd)
     {
+        address publicKey = CA.recoverSigner(sign, msg.sender);
+        require(CA.checkPK(publicKey));
         bids[msg.sender][_bindedBid] = true;
         bidOrder[_bindedBid] = order;
         order += 1;

@@ -2,7 +2,7 @@ pragma solidity >= 0.8.0;
 
 contract SophisticatedInvestorCertificateAuthorityRegistry {
 
-    mapping(bytes32 => bool) publicKeys;
+    mapping(address => bool) publicKeys;
 
     address ASIC;
 
@@ -10,21 +10,21 @@ contract SophisticatedInvestorCertificateAuthorityRegistry {
         ASIC = msg.sender;
     }
 
-    function addPK(bytes32 pk)
+    function addPK(address pk)
         public 
         {
             require(msg.sender == ASIC);
             publicKeys[pk] = true;
         }
 
-    function removePK(bytes32 pk)
+    function removePK(address pk)
         public
         {
             require(msg.sender == ASIC);
             publicKeys[pk] = false;
         }
 
-    function checkPK(bytes32 pk)
+    function checkPK(address pk)
         public
         view
         returns (bool flag) {
@@ -50,14 +50,14 @@ contract SophisticatedInvestorCertificateAuthorityRegistry {
         return (v, r, s);
     }
 
-    function recoverSigner(bytes memory sig)
+    function recoverSigner(bytes memory sig, address addr)
         public
-        view
+        pure
         returns (address)
     {
         (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
 
-        bytes32 addr_hash = keccak256(abi.encodePacked(msg.sender));
+        bytes32 addr_hash = keccak256(abi.encodePacked(addr));
 
         bytes32 encoded_message = prefixed(addr_hash);
 

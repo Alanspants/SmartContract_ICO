@@ -1,5 +1,6 @@
 const NeverPayToken = artifacts.require('ERC20NeverPayToken');
 const NeverPayFR = artifacts.require('NeverPayFundraising');
+const SICAR = artifacts.require('SophisticatedInvestorCertificateAuthorityRegistry');
 
 async function assertRevert (promise) {
     try {
@@ -53,6 +54,17 @@ revertToSnapShot = (id) => {
     })
 }
 
+var publicKey
+var signed
+
+generator = async (investorAddr) => {
+  const account = await web3.eth.accounts.create()
+  var hash = await web3.utils.soliditySha3(investorAddr);
+  const encrypted = await web3.eth.accounts.sign(hash, account.privateKey);
+  publicKey = await account.address;
+  signed = await encrypted.signature;
+}
+
 // issueCheck
 // acc: account
 // refund: refund
@@ -78,10 +90,32 @@ contract("Fundraising test", async accounts => {
     var encoded;
 
     beforeEach(async () => {
-        NPFR = await NeverPayFR.new(accounts[0], { from: accounts[0] });
+        CA = await SICAR.new({ from: accounts[0] });
+        NPFR = await NeverPayFR.new(accounts[0], CA.address, { from: accounts[0] });
         NPTaddr = await NPFR.getTokenAddress.call();
         NPT = await NeverPayToken.at(NPTaddr);
     });
+
+    it("bid with sign Check", async() => {
+        // Bid successful with valid certificate
+        await generator(accounts[1]);
+        await CA.addPK(publicKey, { from: accounts[0] });
+        encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
+        const bidAcc1 = web3.utils.soliditySha3(encoded);
+        await NPFR.bid(bidAcc1, signed, { from: accounts[1] });
+
+        // Account1 bid check => success
+        var bidsAcc1Check = await NPFR.getBidStatus.call(accounts[1], bidAcc1);
+        assert.equal(bidsAcc1Check, true);
+
+        // Bid failed with invalid certificate
+        await generator(accounts[2]);
+        // await CA.addPK(publicKey, { from: accounts[0] });
+        encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
+        const bidAcc2 = web3.utils.soliditySha3(encoded);
+        await assertRevert(NPFR.bid(bidAcc2, signed, { from: accounts[2] }));
+    })
+
 
     it("Initial Setup Check", async () => {
         // Beneficiary address check
@@ -100,14 +134,18 @@ contract("Fundraising test", async accounts => {
     it ("bid test", async() => {
 
         // Account1 bid successful
+        await generator(accounts[1]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc1, { from: accounts[1] });
+        await NPFR.bid(bidAcc1, signed, { from: accounts[1] });
 
         // Account2 bid successful
+        await generator(accounts[2]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc2, { from: accounts[2] });
+        await NPFR.bid(bidAcc2, signed, { from: accounts[2] });
 
         // Account1 bid check => success
         var bidsAcc1Check = await NPFR.getBidStatus.call(accounts[1], bidAcc1);
@@ -141,25 +179,31 @@ contract("Fundraising test", async accounts => {
         // share: 2000
         // price: 2
         // nonce: "acc1"
+        await generator(accounts[1]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc1, { from: accounts[1] });
+        await NPFR.bid(bidAcc1, signed, { from: accounts[1] });
 
         // Account[2]
         // share: 1000
         // price: 5
         // nonce: "acc2"
+        await generator(accounts[2]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc2, { from: accounts[2] });
+        await NPFR.bid(bidAcc2, signed, { from: accounts[2] });
 
         // Account[3]
         // share: 500
         // price: 2
         // nonce: "acc3"
+        await generator(accounts[3]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["500", "2", web3.utils.fromAscii("acc3")]);
         const bidAcc3 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc3, { from: accounts[3] });
+        await NPFR.bid(bidAcc3, signed, { from: accounts[3] });
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
@@ -195,73 +239,91 @@ contract("Fundraising test", async accounts => {
         // share: 2000
         // price: 2
         // nonce: "acc1"
+        await generator(accounts[1]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
         const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc1, { from: accounts[1] });
+        await NPFR.bid(bidAcc1, signed, { from: accounts[1] });
 
         // Account[2]
         // share: 1000
         // price: 5
         // nonce: "acc2"
+        await generator(accounts[2]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
         const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc2, { from: accounts[2] });
+        await NPFR.bid(bidAcc2, signed, { from: accounts[2] });
 
         // Account[3]
         // share: 3000
         // price: 7
         // nonce: "acc3"
+        await generator(accounts[3]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["3000", "7", web3.utils.fromAscii("acc3")]);
         const bidAcc3 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc3, { from: accounts[3] });
+        await NPFR.bid(bidAcc3, signed, { from: accounts[3] });
 
         // Account[4]
         // share: 2000
         // price: 3
         // nonce: "acc4"
+        await generator(accounts[4]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "3", web3.utils.fromAscii("acc4")]);
         const bidAcc4 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc4, { from: accounts[4] });
+        await NPFR.bid(bidAcc4, signed, { from: accounts[4] });
 
         // Account[5]
         // share: 1000
         // price: 9
         // nonce: "acc5"
+        await generator(accounts[5]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "9", web3.utils.fromAscii("acc5")]);
         const bidAcc5 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc5, { from: accounts[5] });
+        await NPFR.bid(bidAcc5, signed, { from: accounts[5] });
 
         // Account[1]
         // share: 2000
         // price: 5
         // nonce: "acc1"
+        await generator(accounts[1]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "5", web3.utils.fromAscii("acc1")]);
         const bidAcc1_again = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc1_again, { from: accounts[1] });
+        await NPFR.bid(bidAcc1_again, signed, { from: accounts[1] });
 
         // Account[6]
         // share: 2000
         // price: 1
         // nonce: "acc6"
+        await generator(accounts[6]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "1", web3.utils.fromAscii("acc6")]);
         const bidAcc6 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc6, { from: accounts[6] });
+        await NPFR.bid(bidAcc6, signed, { from: accounts[6] });
 
         // Account[7]
         // share: 2000
         // price: 1
         // nonce: "acc7"
+        await generator(accounts[7]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "1", web3.utils.fromAscii("acc7")]);
         const bidAcc7 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc7, { from: accounts[7] });
+        await NPFR.bid(bidAcc7, signed, { from: accounts[7] });
 
         // Account[8]
         // share: 500
         // price: 5
         // nonce: "acc8"
+        await generator(accounts[8]);
+        await CA.addPK(publicKey, { from: accounts[0] });
         encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["500", "5", web3.utils.fromAscii("acc8")]);
         const bidAcc8 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc8, { from: accounts[8] });
+        await NPFR.bid(bidAcc8, signed, { from: accounts[8] });
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
