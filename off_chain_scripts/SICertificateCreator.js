@@ -1,85 +1,32 @@
-// Node.js program to demonstrate the
-// crypto.privateEncrypt() method
+var Web3 = require('web3');
+var web3 = new Web3(Web3.givenProvider)
 
-// Including crypto and fs module
-const crypto = require('crypto');
-const fs = require("fs");
+const account = web3.eth.accounts.create()
 
-// Using a function generateKeyFiles
-function generateKeyFiles() {
 
-	const keyPair = crypto.generateKeyPairSync('rsa', {
-		modulusLength: 520,
-		publicKeyEncoding: {
-			type: 'spki',
-			format: 'pem'
-		},
-		privateKeyEncoding: {
-		type: 'pkcs8',
-		format: 'pem',
-		cipher: 'aes-256-cbc',
-		passphrase: '',
-		}
-	});
-	
-	// Creating private key file
-	fs.writeFileSync("private.pem", keyPair.privateKey);
-    fs.writeFileSync("public.pem", keyPair.publicKey);
-
-    console.log(keyPair.publicKey);
-    console.log(keyPair.privateKey);
-}
-
-// Generate keys
-// generateKeyFiles();
-
-// Creating a function to encrypt string
-function encryptString (plaintext, privateKeyFile) {
-	const privateKey = fs.readFileSync(privateKeyFile, "utf8");
-
-	// privateEncrypt() method with its parameters
-	// const encrypted = crypto.privateEncrypt( {
-    //     key: privateKey.toString(),
-    //     passphrase: "",
-    // }, Buffer.from(plaintext));
-	// privateEncrypt() method with its parameters
-	const encrypted = crypto.privateEncrypt( {
-		key: privateKey.toString(),
-		passphrase: "",
-		padding: crypto.constants.RSA_NO_PADDING,
-	}, Buffer.from(plaintext));
-
-	return encrypted.toString("base64");
-}
+// var msg = 'hello worlds'
+// var hash = web3.utils.sha3(msg);
+// const encrypted = web3.eth.accounts.sign(hash, account.privateKey);
+// console.log(encrypted);
 
 const readline = require("readline");
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
+console.log("----------- Sophisticated Investor Certificate Generator -----------")
+rl.question("Investor's Address: ", function(addr) {
+    var hash = web3.utils.soliditySha3(addr);
+    const encrypted = web3.eth.accounts.sign(hash, account.privateKey);
 
-
-// // Defining a text to be encrypted
-// const plainText = "GfG";
-
-// // Defining encrypted text
-// const encrypted = encryptString(plainText, "./private.pem");
-
-// // Prints plain text
-// console.log("Plaintext:", plainText);
-
-// // Prints encrypted text
-// console.log("Encrypted: ", encrypted);
-
-console.log("----------- Sophisticated Investor Encrytor -----------")
-rl.question("Investor's Ethereum address: ", function(addr) {
-	rl.question("Certificate valid year: ", function(year) {
-		generateKeyFiles()
-		const plainText = "   Address: " + addr +  " year: " + year;
-		const encrypted = encryptString(plainText, "./private.pem");
-		console.log("Plaintext:", plainText);
-		console.log("Encrypted: ", encrypted);
-		process.exit(0);
-	})
+    console.log("---------------------------------");
+    console.log("[Public key]: " + account.address);
+    console.log("[Private key]: " + account.privateKey);
+    console.log("---------------------------------");
+    console.log("[Signed address]: " + addr);
+    console.log("[Hashed text]: " + hash);
+    console.log("[Signature]: " + encrypted.signature);
+    console.log("---------------------------------");
+    console.log("Please send [Signature] and [Public key] to investor.")
+    process.exit(0);
 })
-

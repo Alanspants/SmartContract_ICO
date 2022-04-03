@@ -50,19 +50,20 @@ contract SophisticatedInvestorCertificateAuthorityRegistry {
         return (v, r, s);
     }
 
-    function recoverSigner(bytes32 message, bytes memory sig)
+    function recoverSigner(bytes memory sig)
         public
-        pure
+        view
         returns (address)
     {
         (uint8 v, bytes32 r, bytes32 s) = splitSignature(sig);
 
-        bytes32 encoded_message = prefixed(message);
+        bytes32 addr_hash = keccak256(abi.encodePacked(msg.sender));
+
+        bytes32 encoded_message = prefixed(addr_hash);
 
         return ecrecover(encoded_message, v, r, s);
     }
 
-    /// builds a prefixed hash to mimic the behavior of eth_sign.
     function prefixed(bytes32 hash) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
     }
