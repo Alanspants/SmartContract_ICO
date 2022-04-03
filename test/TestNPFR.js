@@ -96,27 +96,6 @@ contract("Fundraising test", async accounts => {
         NPT = await NeverPayToken.at(NPTaddr);
     });
 
-    it("bid with sign Check", async() => {
-        // Bid successful with valid certificate
-        await generator(accounts[1]);
-        await CA.addPK(publicKey, { from: accounts[0] });
-        encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
-        const bidAcc1 = web3.utils.soliditySha3(encoded);
-        await NPFR.bid(bidAcc1, signed, { from: accounts[1] });
-
-        // Account1 bid check => success
-        var bidsAcc1Check = await NPFR.getBidStatus.call(accounts[1], bidAcc1);
-        assert.equal(bidsAcc1Check, true);
-
-        // Bid failed with invalid certificate
-        await generator(accounts[2]);
-        // await CA.addPK(publicKey, { from: accounts[0] });
-        encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
-        const bidAcc2 = web3.utils.soliditySha3(encoded);
-        await assertRevert(NPFR.bid(bidAcc2, signed, { from: accounts[2] }));
-    })
-
-
     it("Initial Setup Check", async () => {
         // Beneficiary address check
         const beneficiary = await NPFR.beneficiary.call();
@@ -130,6 +109,26 @@ contract("Fundraising test", async accounts => {
         const contractBalance = await NPT.balanceOf.call(NPFR.address);
         assert.equal(contractBalance, 10000);
     });
+
+    it("Bid with Signature test", async() => {
+      // Bid successful with valid certificate
+      await generator(accounts[1]);
+      await CA.addPK(publicKey, { from: accounts[0] });
+      encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["2000", "2", web3.utils.fromAscii("acc1")]);
+      const bidAcc1 = web3.utils.soliditySha3(encoded);
+      await NPFR.bid(bidAcc1, signed, { from: accounts[1] });
+
+      // Account1 bid check => success
+      var bidsAcc1Check = await NPFR.getBidStatus.call(accounts[1], bidAcc1);
+      assert.equal(bidsAcc1Check, true);
+
+      // Bid failed with invalid certificate
+      await generator(accounts[2]);
+      // await CA.addPK(publicKey, { from: accounts[0] });
+      encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], ["1000", "5", web3.utils.fromAscii("acc2")]);
+      const bidAcc2 = web3.utils.soliditySha3(encoded);
+      await assertRevert(NPFR.bid(bidAcc2, signed, { from: accounts[2] }));
+  })
 
     it ("bid test", async() => {
 

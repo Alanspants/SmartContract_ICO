@@ -12,6 +12,10 @@ console.log("----------- Neverpay fundraising contract bid encrypter -----------
 rl.question("shares: ", function(shares) {
     rl.question("price: ", function(price) {
         rl.question("nonce: ", function(nonce) {
+            if (price < 1) {
+                console.log("Warning: You cannot bid less than 1 Ether.");
+                process.exit(0);
+            }
             encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], [shares, price, web3.utils.fromAscii(nonce)]);
             hashvalue = web3.utils.soliditySha3(encoded);
             console.log("Encrypted hash value:");

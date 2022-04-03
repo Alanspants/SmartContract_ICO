@@ -61,30 +61,19 @@ contract NeverPayFundraising {
         issued[_beneficiary] = true;
     }
 
-    // /*
-    // [Round1] Make a bid
-    // _bindedBid: hash value of bid message send by bidder => H(shares, price, nonce)   
-    // */
-    // function bid(bytes32 _bindedBid)
-    //     public 
-    //     onlyBefore(bidEnd)
-    // {
-    //     bids[msg.sender][_bindedBid] = true;
-    //     bidOrder[_bindedBid] = order;
-    //     order += 1;
-    //     issued[msg.sender] = true;
-    // }
-
     /*
     [Round1] Make a bid
-    _bindedBid: hash value of bid message send by bidder => H(shares, price, nonce)   
+    _bindedBid: hash value of bid message send by bidder => H(shares, price, nonce)  
+    sign: Signature 
     */
     function bid(bytes32 _bindedBid, bytes memory sign)
         public 
         onlyBefore(bidEnd)
-    {
+    {   
+        // signature verification
         address publicKey = CA.recoverSigner(sign, msg.sender);
         require(CA.checkPK(publicKey));
+        
         bids[msg.sender][_bindedBid] = true;
         bidOrder[_bindedBid] = order;
         order += 1;
@@ -120,7 +109,7 @@ contract NeverPayFundraising {
         
         // Check whether these three parameters are matched with certain bid in round1
         // or price is smaller than 1 Ether.
-        if (bids[msg.sender][hashedReveal] != true || _price < 1) {
+        if (bids[msg.sender][hashedReveal] != true || _price < 1 || _price == 0) {
             // Bid not found || already been revealed
             // Refund the ETH
             refunds[msg.sender] += weiToETH(msg.value);
