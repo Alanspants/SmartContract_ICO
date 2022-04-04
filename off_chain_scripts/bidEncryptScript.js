@@ -16,11 +16,11 @@ rl.question("shares: ", function(shares) {
                 console.log("Warning: You cannot bid less than 1 Ether.");
                 process.exit(0);
             }
-            encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], [shares, price, web3.utils.fromAscii(nonce)]);
+            encoded = web3.eth.abi.encodeParameters(['uint', 'uint', 'bytes32'], [shares, price, web3.utils.padLeft(web3.utils.fromAscii(nonce), 64)]);
             hashvalue = web3.utils.soliditySha3(encoded);
             console.log("Encrypted hash value:");
             console.log(hashvalue);
-            bytes32Nonce = web3.utils.fromAscii(nonce);
+            bytes32Nonce = web3.utils.padLeft(web3.utils.fromAscii(nonce), 64)
             console.log("nonce bytes32: " + bytes32Nonce);
             process.exit(0);
         });
