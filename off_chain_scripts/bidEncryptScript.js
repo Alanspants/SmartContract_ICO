@@ -20,6 +20,8 @@ rl.question("shares: ", function(shares) {
             hashvalue = web3.utils.soliditySha3(encoded);
             console.log("Encrypted hash value:");
             console.log(hashvalue);
+            bytes32Nonce = web3.utils.fromAscii(nonce);
+            console.log("nonce bytes32: " + bytes32Nonce);
             process.exit(0);
         });
     });

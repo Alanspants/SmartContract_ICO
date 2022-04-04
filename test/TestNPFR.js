@@ -368,8 +368,9 @@ contract("Fundraising test", async accounts => {
         // acc8         2000        1           1000        no          share overflow      1000
         // acc9         500         5           500         no          wrong payment       500
         // sorted by price: acc5 > acc3 > acc2 > acc1 > acc9 > acc4 > acc1 > acc7 > acc8
-        // available: acc5(1000) > acc3(3000) > acc2(1000) > acc1(2000) > acc4(2000) > acc1(1000)
-        // successful bid:  acc5: 1000 * 9 = 9000
+        // valid bids: acc5(1000) > acc3(3000) > acc2(1000) > acc1(2000) > acc4(2000) > acc1(1000)
+        // bid's payment calculated:  a
+        //                  acc5: 1000 * 9 = 9000
         //                  acc3: 3000 * 7 = 21000
         //                  acc2: 1000 * 5 = 5000
         //                  acc4: 2000 * 3 = 6000

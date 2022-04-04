@@ -222,7 +222,7 @@ contract NeverPayFundraising {
     // 4           5=>5        6,5,3,2,1,5 => 6,5,3,2,1,1 => 6,5,3,2,2,1 => 6,5,3,3,2,1 => 
 
     function insertionSort()
-        public
+        internal
     {
         int len = int(validBids.length);
         int preIndex;
