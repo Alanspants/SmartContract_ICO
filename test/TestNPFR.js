@@ -206,7 +206,7 @@ contract("Fundraising test", async accounts => {
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
-        await advanceTime(86400 * 22);
+        await advanceTime(86400 * 18);
 
         // success reveal
         await NPFR.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
@@ -326,7 +326,7 @@ contract("Fundraising test", async accounts => {
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
-        await advanceTime(86400 * 22);
+        await advanceTime(86400 * 18);
 
         // Partial success reveal (total share > 10000) => get partial refund in ICOEnd (2000 ETH)
         await NPFR.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
@@ -355,7 +355,7 @@ contract("Fundraising test", async accounts => {
         // Failed reveal (dismatched ETH paid) => get refund (2500 ETH)
         await NPFR.reveal.sendTransaction(500, 5, web3.utils.fromAscii("acc8"), { from: accounts[8], to: NPFR.address, value: web3.utils.toWei("500", "ether") });
 
-        await advanceTime(86400 * 2);
+        await advanceTime(86400 * 4);
 
         // account:     share:      price:      paid:       valid:      reason:             refund(ETH):
         // acc1         2000        2           4000        partial     share overflow      2000

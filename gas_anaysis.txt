@@ -1,0 +1,15 @@
+
+[function]              [gas cost]      [gas price]     [gas fee]
+AISC:
+    deployed:           518575  gas     30 Gwei         0.015557259 Ether
+    add public key:     46314   gas     30 Gwei         0.00138942 Ether
+
+NeverPay:
+    deployed:           3024447 gas     30 Gwei         0.09073341 Ether
+    issue:              40143   gas     30 Gwei         0.00120429 Ether
+
+Investor:
+    bid:                112144  gas     30 Gwei         0.00336432 Ether 
+    reveal:             120323  gas     30 Gwei         0.00360969 Ether
+    issue:              71066   gas     30 Gwei         0.00213198 Ether
+    

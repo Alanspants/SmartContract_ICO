@@ -186,10 +186,10 @@ contract("Fundraising test", async accounts => {
 
         const snapshot = await takeSnapshot();
         const snapshotID = await snapshot['result'];
-        await advanceTime(86400 * 22);
+        await advanceTime(86400 * 21);
 
         // success reveal
-        await NPFR.reveal.sendTransaction(2000, 2, "acc1", { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
+        await NPFR.reveal.sendTransaction(2000, 2, web3.utils.fromAscii("acc1"), { from: accounts[1], to: NPFR.address, value: web3.utils.toWei("4000", "ether") });
         const resultArray_0 = await NPFR.getValidBidInfo.call(0);
         assert.equal(resultArray_0[1].words[0], "2000")
         assert.equal(resultArray_0[2].words[0], "2")
